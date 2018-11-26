@@ -1,2 +1,2 @@
 # m2_scripts
-This has scripts to import bulk data
+This has script files to import bulk data

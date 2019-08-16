@@ -16,7 +16,7 @@ class DataImportCsv
 
     private $logFilename = 'attribute_update.log';
 
-    private $attribute = 'state';
+    private $attribute = 'tco_sell_seller_share';
 
     private $productRepository;
 
@@ -24,7 +24,7 @@ class DataImportCsv
 
     private $objectManager;
 
-    public function __construct($filename)
+    public function __construct()
     {
         $bootstrap = Bootstrap::create(BP, $_SERVER);
 
@@ -39,7 +39,6 @@ class DataImportCsv
         /** @var \Magento\Catalog\Model\ResourceModel\Product $resourceProduct */
         $this->productResource = $this->objectManager->get('Magento\Catalog\Model\ResourceModel\ProductFactory')->create();
 
-        $this->filename = $filename;
     }
 
     private function process()
@@ -47,21 +46,28 @@ class DataImportCsv
         $csvFile = file($this->filename);
         $logFile = fopen($this->logFilename, 'w');
 
+        $stores = array(1,8);
+
         foreach ($csvFile as $line) {
             $data = null;
             $data = str_getcsv($line);
             try {
                 $product = $this->productRepository->getById($data[0]);
-                $product->setData('store_id', 0);
-                $product->setData($this->attribute, $data[1]);
-                $this->productResource->saveAttribute($product, $this->attribute);
-                echo $data[0] . PHP_EOL;
-                fwrite($logFile, $data[0] . ' - updated' . PHP_EOL);
+                foreach ($stores as $store) {
+                    $product->setData('store_id', $store);
+                    $product->setData($this->attribute, $data[1]);
+                    $this->productResource->saveAttribute($product, $this->attribute);
+                    echo $data[0]  . ' - ' . $store . PHP_EOL;
+//                        usleep( 100000 );
+                }
+
+                fwrite($logFile, $data[0] . ' - updated - ' . $store . PHP_EOL);
             } catch (Exception $e) {
                 echo $data[0] . ' - ' . $e->getMessage() . PHP_EOL;
-                fwrite($logFile, $data[0] . ' - ' . $e->getMessage() . PHP_EOL);
+                fwrite($logFile, $data[0] . ' - error - '  . $store . ' ' . $e->getMessage() . PHP_EOL);
             }
         }
+
     }
 
     public function run()
@@ -70,5 +76,5 @@ class DataImportCsv
     }
 }
 
-$dataCsv = new DataImportCsv('products.csv');
+$dataCsv = new DataImportCsv();
 $dataCsv->run();
